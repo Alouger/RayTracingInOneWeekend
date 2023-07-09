@@ -3,14 +3,16 @@
 
 #include "hittable.h"
 #include "vec3.h"
+// #include "ray.h"
 
 class sphere : public hittable {
     public:
         point3 center;
         double radius;
+        shared_ptr<material> mat_ptr;
     public:
         sphere() {}
-        sphere(point3 cen, double r) : center(cen), radius(r) {};
+        sphere(point3 cen, double r, shared_ptr<material> m) : center(cen), radius(r), mat_ptr(m) {};
 
         virtual bool hit(const ray & r, double t_min, double t_max, hit_record & rec) const override;
 };
@@ -45,6 +47,8 @@ bool sphere::hit(const ray & r, double t_min, double t_max, hit_record & rec) co
     // 目前，我们的碰撞法线是 (rec.p - center) / radius。即朝向球体外部
     vec3 outward_normal = (rec.p - center) / radius;
     rec.set_face_normal(r, outward_normal);
+    // hit_record中的材质指针会被球体的材质指针所赋值
+    rec.mat_ptr = mat_ptr;
 
     return true;
 }

@@ -1,11 +1,17 @@
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
-#include "ray.h"
+// #include "ray.h"
+// #include "vec3.h"
+#include "rtweekend.h"
+
+class material;
 
 struct hit_record {
     vec3 p; // 碰撞点位置
     vec3 normal; // 碰撞点表面法线
+    // 我们在hit_record中存储了材质的指针。
+    shared_ptr<material> mat_ptr;
     double t; // 碰撞在射线上的时间t参数
     bool front_face;
 

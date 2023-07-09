@@ -1,11 +1,13 @@
+#include <iostream>
+#include <fstream>
+#include <string>
 #include "color.h"
 #include "rtweekend.h"
 #include "hittable_list.h"
 #include "sphere.h"
 #include "camera.h"
-#include <iostream>
-#include <fstream>
-#include <string>
+#include "material.h"
+#include "ray.h"
 
 // center表示球心
 // double hit_sphere(const point3 & center, double radius, const ray & r) {
@@ -69,12 +71,87 @@
 // }
 
 // 第6章更新后的函数ray_color
-color ray_color(const ray & r, const hittable & world) {
+// color ray_color(const ray & r, const hittable & world) {
+//     hit_record rec;
+//     // 判断是否光线击中物体
+//     if (world.hit(r, 0, infinity, rec)) {
+//         // 直接使用法线值作为颜色输出
+//         return 0.5 * (rec.normal + color(1, 1, 1));
+//     }
+//     vec3 unit_direction = unit_vector(r.direction());
+//     // 该函数根据y值将蓝白做了个线性插值的混合, 我们这里把射线做了个单位化, 以保证y的取值范围(-1.0<y<1.0)。
+//     // 因为我们使用y轴做渐变, 所以你可以看到这个蓝白渐变也是竖直的。
+//     // 我们接下来使用了一个标准的小技巧将y的范围从-1.0 ≤ y ≤ 1.0映射到了0 ≤ y ≤ 1.0。
+//     // 这样t=1.0时就是蓝色, 而t=0.0时就是白色。
+//     auto t = 0.5 * (unit_direction.y() + 1.0);
+//     // 在蓝白之间我想要一个混合效果(blend)。现在我们采用的是线性混合(linear blend)或者说线性插值(liner interpolation)。
+//     // 或者简称其为lerp。一个lerp一般来说会是下面的形式:
+//     // blendedValue = (1 - t) * startValue + t * endValue
+//     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+    
+// }
+
+// // 第8章使用我们vec3.h中新的生成随机随机反射方向的函数random_in_unit_sphere()来更新一下我们的ray_color()函数
+// color ray_color(const ray & r, const hittable & world, int depth) {
+//     hit_record rec;
+//     // 注意ray_color函数是一个递归函数。那么递归终止的条件是什么呢?当它没有击中任何东西。
+//     // 但是, 在某些条件下, 达到这个终止条件的时间会非常长, 长到足够爆了函数栈
+//     // 【译注:想象一下一条光线在一个镜子材质的密封的盒子(并不吸收光线)中反复折射, 永无尽头】。
+//     // 为了避免这种情况的发生, 我们使用一个变量depth限制递归层数。
+//     // 当递归层数达到限制值时我们终止递归, 返回黑色，表示此处应该是多个物体之间的夹缝，非常暗。
+//     if (depth <= 0)
+//         return color(0, 0, 0);
+
+//     // 判断是否光线击中物体
+//     // 这里hit函数第二个参数还有个不太重要的潜在bug。
+//     // 有些物体反射的光线会在t=0时再次击中自己。
+//     // 然而由于精度问题, 这个值可能是t=-0.000001或者是t=0.0000000001或者任意接近0的浮点数。
+//     // 所以我们要忽略掉0附近的一部分范围, 防止物体发出的光线再次与自己相交。
+//     if (world.hit(r, 0.001, infinity, rec)) {
+//         // 首先通过 rec.p + rec.normal 计算出单位球体的球心。
+//         // 然后通过调用random_unit_vector()函数来一个随机向量。
+//         // 通过 球心 + 随机向量 得出球体的一个随机点。
+//         point3 target = rec.p + rec.normal + random_unit_vector();
+//         // 前面的章节是直接使用法线值作为颜色输出
+//         // return 0.5 * (rec.normal + color(1, 1, 1));
+
+//         // 再通过 碰撞到rec.p 到 target - rec.p 来获取反弹后的射线。
+//         // 然后用 0.5 * ray_color(...) 来递归调用该函数来计算最终碰到的背景色，再用0.5来衰减它。
+//         return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
+//     }
+//     vec3 unit_direction = unit_vector(r.direction());
+//     // 该函数根据y值将蓝白做了个线性插值的混合, 我们这里把射线做了个单位化, 以保证y的取值范围(-1.0<y<1.0)。
+//     // 因为我们使用y轴做渐变, 所以你可以看到这个蓝白渐变也是竖直的。
+//     // 我们接下来使用了一个标准的小技巧将y的范围从-1.0 ≤ y ≤ 1.0映射到了0 ≤ y ≤ 1.0。
+//     // 这样t=1.0时就是蓝色, 而t=0.0时就是白色。
+//     auto t = 0.5 * (unit_direction.y() + 1.0);
+//     // 在蓝白之间我想要一个混合效果(blend)。现在我们采用的是线性混合(linear blend)或者说线性插值(liner interpolation)。
+//     // 或者简称其为lerp。一个lerp一般来说会是下面的形式:
+//     // blendedValue = (1 - t) * startValue + t * endValue
+//     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+
+// 第9章使用材质反射来更新一下我们的ray_color()函数
+color ray_color(const ray & r, const hittable & world, int depth) {
     hit_record rec;
+    // 注意ray_color函数是一个递归函数。那么递归终止的条件是什么呢?当它没有击中任何东西。
+    // 但是, 在某些条件下, 达到这个终止条件的时间会非常长, 长到足够爆了函数栈
+    // 【译注:想象一下一条光线在一个镜子材质的密封的盒子(并不吸收光线)中反复折射, 永无尽头】。
+    // 为了避免这种情况的发生, 我们使用一个变量depth限制递归层数。
+    // 当递归层数达到限制值时我们终止递归, 返回黑色，表示此处应该是多个物体之间的夹缝，非常暗。
+    if (depth <= 0)
+        return color(0, 0, 0);
+
     // 判断是否光线击中物体
-    if (world.hit(r, 0, infinity, rec)) {
-        // 直接使用法线值作为颜色输出
-        return 0.5 * (rec.normal + color(1, 1, 1));
+    // 这里hit函数第二个参数还有个不太重要的潜在bug。
+    // 有些物体反射的光线会在t=0时再次击中自己。
+    // 然而由于精度问题, 这个值可能是t=-0.000001或者是t=0.0000000001或者任意接近0的浮点数。
+    // 所以我们要忽略掉0附近的一部分范围, 防止物体发出的光线再次与自己相交。
+    if (world.hit(r, 0.001, infinity, rec)) {
+        ray scattered;
+        color attenuation;
+        if(rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+            return attenuation * ray_color(scattered, world, depth - 1);
+        return color(0, 0, 0);
     }
     vec3 unit_direction = unit_vector(r.direction());
     // 该函数根据y值将蓝白做了个线性插值的混合, 我们这里把射线做了个单位化, 以保证y的取值范围(-1.0<y<1.0)。
@@ -89,6 +166,7 @@ color ray_color(const ray & r, const hittable & world) {
     
 }
 
+
 int main() {
 
     // Image
@@ -97,14 +175,24 @@ int main() {
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     // 单个像素采样次数
     const int samples_per_pixel = 100;
+    // 该变量限制ray_color()函数的递归层数，避免递归爆炸
+    const int max_depth = 50;
 
     // World
     hittable_list world;
-    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
+    auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
+    auto material_left = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
+    auto material_right = make_shared<metal>(color(0.8, 0.6, 0.2), 0.1);
+
+    // 加入金属球：
     // 这里的point3(0, -100.5, -1)和100是sphere构造函数的参数
-    // 调用的构造函数是sphere(point3 cen, double r) : center(cen), radius(r) {};
+    // 调用的构造函数是sphere(point3 cen, double r, shared_ptr<material> m) : center(cen), radius(r), mat_ptr(m) {};
     // 所以point3(0, -100.5, -1)是球心，100是半径
-    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+    world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
+    world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
+    world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
 
     // Camera
     // 虚拟视口高度
@@ -122,7 +210,7 @@ int main() {
 
     // Render
     std::ofstream outfile;
-    std::string filePath = "ch6.txt";
+    std::string filePath = "ch9.txt";
     outfile.open(filePath);
     outfile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
@@ -142,7 +230,7 @@ int main() {
                 auto u = (i + random_double()) / (image_width - 1);
                 auto v = (j + random_double()) / (image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, world, max_depth);
             }
             write_color(outfile, pixel_color, samples_per_pixel);
         }
